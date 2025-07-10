@@ -160,7 +160,7 @@ async def get_supported_providers():
 
 @router.post("/test-connection")
 async def test_ai_connection():
-    """Test the current AI configuration"""
+    """Test the current AI configuration with a simple prompt"""
     try:
         if not ai_service.is_initialized:
             raise HTTPException(
@@ -168,23 +168,46 @@ async def test_ai_connection():
                 detail="AI service not configured"
             )
         
-        # Perform a simple test generation
-        test_result = await ai_service.generate_schema_from_natural_language(
-            description="A simple user profile with name and email",
-            domain="general",
-            data_type="tabular"
-        )
-        
-        return {
-            "status": "success",
-            "message": "AI connection test successful",
-            "provider": ai_service.current_provider,
-            "model": ai_service.current_model,
-            "test_result": {
-                "fields_generated": len(test_result.get('schema', {})),
-                "detected_domain": test_result.get('detected_domain', 'unknown')
+        # For Ollama, use a simpler test to avoid complex generation
+        if ai_service.current_provider == 'ollama':
+            # Import the Ollama service to test simple completion
+            from ..services.ollama_service import OllamaService
+            ollama_service = OllamaService(ai_service.endpoint or 'http://localhost:11434')
+            ollama_service.configure_model(ai_service.current_model, ai_service.endpoint)
+            await ollama_service.initialize()
+            
+            # Test with simple completion
+            test_response = await ollama_service.generate_completion("Say 'Hello DataGenesis!' if you can respond.")
+            
+            return {
+                "status": "success",
+                "message": "Ollama connection test successful",
+                "provider": ai_service.current_provider,
+                "model": ai_service.current_model,
+                "test_result": {
+                    "response_received": bool(test_response),
+                    "response_length": len(test_response) if test_response else 0,
+                    "sample_response": test_response[:100] + "..." if len(test_response) > 100 else test_response
+                }
             }
-        }
+        else:
+            # For other providers, use schema generation test
+            test_result = await ai_service.generate_schema_from_natural_language(
+                description="A simple user profile with name and email",
+                domain="general",
+                data_type="tabular"
+            )
+            
+            return {
+                "status": "success",
+                "message": "AI connection test successful",
+                "provider": ai_service.current_provider,
+                "model": ai_service.current_model,
+                "test_result": {
+                    "fields_generated": len(test_result.get('schema', {})),
+                    "detected_domain": test_result.get('detected_domain', 'unknown')
+                }
+            }
         
     except Exception as e:
         logger.error(f"❌ AI connection test failed: {str(e)}")

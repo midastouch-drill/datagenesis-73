@@ -116,26 +116,63 @@ class OllamaService:
             }
 
     async def generate_completion(self, prompt: str) -> str:
-        """Generate text completion using Ollama"""
+        """Generate text completion using Ollama with improved error handling"""
         if not self.is_initialized:
             raise Exception("Ollama service not initialized")
             
         try:
+            # First ensure the model is loaded by checking if it exists
+            logger.info(f"🔍 Checking if model {self.model_name} is available...")
+            
+            tags_response = await self.client.get(f"{self.base_url}/api/tags")
+            if tags_response.status_code == 200:
+                models_data = tags_response.json()
+                available_models = [model['name'] for model in models_data.get('models', [])]
+                
+                if self.model_name not in available_models:
+                    logger.error(f"❌ Model {self.model_name} not found. Available: {available_models}")
+                    raise Exception(f"Model {self.model_name} not available. Available models: {available_models}")
+            
+            # Make generation request with proper parameters
+            logger.info(f"🎯 Making generation request to {self.base_url}/api/generate")
+            
+            payload = {
+                "model": self.model_name,
+                "prompt": prompt,
+                "stream": False,
+                "options": {
+                    "temperature": 0.7,
+                    "num_predict": 1000,
+                    "top_p": 0.9
+                }
+            }
+            
+            logger.info(f"📝 Request payload: {json.dumps(payload, indent=2)}")
+            
             response = await self.client.post(
                 f"{self.base_url}/api/generate",
-                json={
-                    "model": self.model_name,
-                    "prompt": prompt,
-                    "stream": False
-                }
+                json=payload,
+                timeout=httpx.Timeout(120.0)  # Increased timeout for local models
             )
+            
+            logger.info(f"📡 Response status: {response.status_code}")
             
             if response.status_code == 200:
                 result = response.json()
-                return result.get('response', '')
+                response_text = result.get('response', '')
+                logger.info(f"✅ Generation successful, response length: {len(response_text)}")
+                return response_text
             else:
-                raise Exception(f"Ollama API error: {response.status_code}")
+                error_text = response.text
+                logger.error(f"❌ Ollama API error {response.status_code}: {error_text}")
+                raise Exception(f"Ollama API error: {response.status_code} - {error_text}")
                 
+        except httpx.TimeoutException:
+            logger.error("⏰ Request timeout - model might be slow to respond")
+            raise Exception("Request timeout - try a smaller model or check Ollama performance")
+        except httpx.ConnectError:
+            logger.error("🔗 Connection error - Ollama might not be running")
+            raise Exception("Cannot connect to Ollama - ensure it's running on the specified endpoint")
         except Exception as e:
             logger.error(f"❌ Ollama generation failed: {str(e)}")
             raise Exception(f"Local AI generation failed: {str(e)}")
