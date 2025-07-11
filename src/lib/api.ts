@@ -78,11 +78,8 @@ export class ApiService {
     sourceData?: any[];
   }): Promise<any> {
     try {
-      // First check if AI is configured, if not use local generation
-      const aiStatus = await this.getAIStatus().catch(() => ({ is_configured: false }));
-      
-      const endpoint = aiStatus.is_configured ? '/generation/start' : '/generation/generate-local';
-      const response = await api.post(endpoint, data);
+      // Always use generate-local for immediate generation
+      const response = await api.post('/generation/generate-local', data);
       return response.data;
     } catch (error) {
       console.error('Data generation failed:', error);

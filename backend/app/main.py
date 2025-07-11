@@ -194,15 +194,25 @@ async def generate_schema_from_description(
         raise HTTPException(status_code=400, detail="Description must be at least 10 characters long")
     
     try:
-        # Try using configured AI service first, fallback to Gemini
-        if ai_service.is_initialized:
-            schema_result = await ai_service.generate_schema_from_natural_language(
-                description, domain, data_type
-            )
-        else:
-            schema_result = await gemini_service.generate_schema_from_natural_language(
-                description, domain, data_type
-            )
+        # Try using configured AI service first, then fallback to Gemini
+        try:
+            if ai_service.is_initialized:
+                logger.info(f"🤖 Using configured AI service: {ai_service.current_provider}")
+                schema_result = await ai_service.generate_schema_from_natural_language(
+                    description, domain, data_type
+                )
+            else:
+                logger.info("🤖 Using Gemini service as fallback")
+                schema_result = await gemini_service.generate_schema_from_natural_language(
+                    description, domain, data_type
+                )
+        except Exception as e:
+            logger.error(f"❌ Schema generation failed with {ai_service.current_provider if ai_service.is_initialized else 'Gemini'}: {str(e)}")
+            # If using Ollama and it fails due to memory, suggest smaller models
+            if ai_service.is_initialized and ai_service.current_provider == 'ollama' and "memory" in str(e).lower():
+                raise HTTPException(status_code=500, detail=f"Model requires too much memory. Try smaller models like llama3.2:1b, llama3.2:3b, or phi3:3.8b. Error: {str(e)}")
+            else:
+                raise HTTPException(status_code=500, detail=f"Schema generation failed: {str(e)}")
         
         return {
             "schema": schema_result.get('schema', {}),

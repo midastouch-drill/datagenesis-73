@@ -168,28 +168,42 @@ async def test_ai_connection():
                 detail="AI service not configured"
             )
         
-        # For Ollama, use a simpler test to avoid complex generation
+        # For Ollama, use a much simpler test to avoid memory issues
         if ai_service.current_provider == 'ollama':
-            # Import the Ollama service to test simple completion
+            # Import the Ollama service to test simple connection
             from ..services.ollama_service import OllamaService
             ollama_service = OllamaService(ai_service.endpoint or 'http://localhost:11434')
             ollama_service.configure_model(ai_service.current_model, ai_service.endpoint)
-            await ollama_service.initialize()
             
-            # Test with simple completion
-            test_response = await ollama_service.generate_completion("Say 'Hello DataGenesis!' if you can respond.")
-            
-            return {
-                "status": "success",
-                "message": "Ollama connection test successful",
-                "provider": ai_service.current_provider,
-                "model": ai_service.current_model,
-                "test_result": {
-                    "response_received": bool(test_response),
-                    "response_length": len(test_response) if test_response else 0,
-                    "sample_response": test_response[:100] + "..." if len(test_response) > 100 else test_response
-                }
-            }
+            try:
+                # Just test basic health check first (no model loading)
+                health_result = await ollama_service.health_check()
+                
+                if health_result.get("status") == "online":
+                    # Try a very simple, short completion to verify model works
+                    test_response = await ollama_service.generate_completion("Hi")
+                    
+                    return {
+                        "status": "success",
+                        "message": "Ollama connection and model test successful",
+                        "provider": ai_service.current_provider,
+                        "model": ai_service.current_model,
+                        "test_result": {
+                            "health_status": "online",
+                            "response_received": bool(test_response),
+                            "response_length": len(test_response) if test_response else 0,
+                            "sample_response": test_response[:50] + "..." if len(test_response) > 50 else test_response
+                        }
+                    }
+                else:
+                    raise Exception(f"Ollama service not responding: {health_result.get('message', 'Unknown error')}")
+                    
+            except Exception as e:
+                error_msg = str(e)
+                if "memory" in error_msg.lower():
+                    raise Exception(f"Model requires too much memory. Try smaller models like llama3.2:1b, llama3.2:3b, or phi3:3.8b")
+                else:
+                    raise Exception(f"Ollama test failed: {error_msg}")
         else:
             # For other providers, use schema generation test
             test_result = await ai_service.generate_schema_from_natural_language(

@@ -27,7 +27,7 @@ interface ModelSelectorProps {
 const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose }) => {
   const { currentModel, availableModels, setModel } = useModel();
   const [selectedProvider, setSelectedProvider] = useState<string>(currentModel?.provider || 'gemini');
-  const [selectedModel, setSelectedModel] = useState(currentModel?.model || (currentModel?.provider === 'ollama' ? 'llama3:8b' : 'gemini-1.5-flash'));
+  const [selectedModel, setSelectedModel] = useState(currentModel?.model || (currentModel?.provider === 'ollama' ? 'llama3.2:3b' : 'gemini-1.5-flash'));
   const [apiKey, setApiKey] = useState(currentModel?.apiKey || '');
   const [endpoint, setEndpoint] = useState(currentModel?.endpoint || 'http://localhost:11434');
   const [showApiKey, setShowApiKey] = useState(false);
@@ -210,8 +210,8 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose }) => {
                   key={provider}
                   onClick={() => {
                     setSelectedProvider(provider);
-                    // Set appropriate default model for the provider
-                    const defaultModel = provider === 'ollama' ? 'llama3:8b' : availableModels[provider][0];
+                    // Set appropriate default model for the provider (prioritize smaller models for Ollama)
+                    const defaultModel = provider === 'ollama' ? 'llama3.2:3b' : availableModels[provider][0];
                     setSelectedModel(defaultModel);
                     // Reset API key if switching to Ollama
                     if (provider === 'ollama') {
@@ -302,7 +302,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose }) => {
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
               <p className="text-xs text-gray-400 mt-1">
-                Make sure Ollama is running on your machine
+                Make sure Ollama is running. For 4GB RAM systems, use smaller models like llama3.2:1b or llama3.2:3b
               </p>
             </div>
           )}

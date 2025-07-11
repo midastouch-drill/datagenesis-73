@@ -17,9 +17,9 @@ logger = logging.getLogger(__name__)
 class OllamaService:
     def __init__(self, base_url: str = "http://localhost:11434"):
         self.base_url = base_url
-        self.model_name = "llama3:8b"  # Default model - matches user's available model
+        self.model_name = "llama3.2:3b"  # Start with smaller model for memory constraints
         self.is_initialized = False
-        self.client = httpx.AsyncClient(timeout=httpx.Timeout(60.0))
+        self.client = httpx.AsyncClient(timeout=httpx.Timeout(30.0))  # Shorter timeout for responsiveness
         
     def configure_model(self, model_name: str, base_url: str = None):
         """Configure Ollama model and endpoint"""
@@ -152,7 +152,7 @@ class OllamaService:
             response = await self.client.post(
                 f"{self.base_url}/api/generate",
                 json=payload,
-                timeout=httpx.Timeout(120.0)  # Increased timeout for local models
+                timeout=httpx.Timeout(60.0)  # Reasonable timeout for small models
             )
             
             logger.info(f"📡 Response status: {response.status_code}")
@@ -165,6 +165,17 @@ class OllamaService:
             else:
                 error_text = response.text
                 logger.error(f"❌ Ollama API error {response.status_code}: {error_text}")
+                
+                # Check for memory issues and suggest smaller models
+                if "memory" in error_text.lower() or response.status_code == 500:
+                    try:
+                        error_json = response.json()
+                        if "memory" in error_json.get("error", "").lower():
+                            small_models = ["llama3.2:1b", "llama3.2:3b", "phi3:3.8b", "qwen2.5:3b"]
+                            raise Exception(f"Model requires more memory than available. Try smaller models: {', '.join(small_models)}")
+                    except:
+                        pass
+                
                 raise Exception(f"Ollama API error: {response.status_code} - {error_text}")
                 
         except httpx.TimeoutException:
