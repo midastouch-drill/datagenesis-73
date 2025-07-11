@@ -27,7 +27,7 @@ interface ModelSelectorProps {
 const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose }) => {
   const { currentModel, availableModels, setModel } = useModel();
   const [selectedProvider, setSelectedProvider] = useState<string>(currentModel?.provider || 'gemini');
-  const [selectedModel, setSelectedModel] = useState(currentModel?.model || (currentModel?.provider === 'ollama' ? 'llama3.2:3b' : 'gemini-1.5-flash'));
+  const [selectedModel, setSelectedModel] = useState(currentModel?.model || (currentModel?.provider === 'ollama' ? 'llama3:8b' : 'gemini-1.5-flash'));
   const [apiKey, setApiKey] = useState(currentModel?.apiKey || '');
   const [endpoint, setEndpoint] = useState(currentModel?.endpoint || 'http://localhost:11434');
   const [showApiKey, setShowApiKey] = useState(false);
@@ -211,7 +211,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose }) => {
                   onClick={() => {
                     setSelectedProvider(provider);
                     // Set appropriate default model for the provider
-                    const defaultModel = provider === 'ollama' ? 'llama3.2:3b' : availableModels[provider][0];
+                    const defaultModel = provider === 'ollama' ? 'llama3:8b' : availableModels[provider][0];
                     setSelectedModel(defaultModel);
                     // Reset API key if switching to Ollama
                     if (provider === 'ollama') {
@@ -249,35 +249,12 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ isOpen, onClose }) => {
               onChange={(e) => setSelectedModel(e.target.value)}
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
             >
-              {availableModels[selectedProvider]?.map((model) => {
-                const getModelDescription = (model: string) => {
-                  if (selectedProvider === 'ollama') {
-                    switch(model) {
-                      case 'llama3.2:3b': return `${model} (Recommended for 4GB systems - ~2GB RAM)`;
-                      case 'phi3:3.8b': return `${model} (Good for coding - ~2.3GB RAM)`;
-                      case 'llama3:8b': return `${model} (Requires 8GB+ system - ~5.9GB RAM)`;
-                      case 'mistral:7b': 
-                      case 'codellama:7b': 
-                      case 'llama2:7b': return `${model} (Requires 6GB+ system - ~4.1GB RAM)`;
-                      case 'llama3:70b': return `${model} (High-end systems only - ~40GB RAM)`;
-                      default: return model;
-                    }
-                  }
-                  return model;
-                };
-                
-                return (
-                  <option key={model} value={model}>
-                    {getModelDescription(model)}
-                  </option>
-                );
-              })}
+              {availableModels[selectedProvider]?.map((model) => (
+                <option key={model} value={model}>
+                  {model}
+                </option>
+              ))}
             </select>
-            {selectedProvider === 'ollama' && (
-              <p className="text-xs text-yellow-400 mt-1">
-                💡 Choose models based on your system RAM. For 4GB systems, use llama3.2:3b or phi3:3.8b
-              </p>
-            )}
           </div>
 
           {/* API Key */}

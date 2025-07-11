@@ -165,17 +165,6 @@ class OllamaService:
             else:
                 error_text = response.text
                 logger.error(f"❌ Ollama API error {response.status_code}: {error_text}")
-                
-                # Check for memory-related errors
-                try:
-                    error_data = response.json()
-                    if "requires more system memory" in str(error_data):
-                        memory_error = error_data.get('error', '')
-                        logger.error(f"❌ Ollama model memory error: {memory_error}")
-                        raise Exception(f"Model requires more memory than available. Try a smaller model like 'llama3.2:3b' or 'phi3:3.8b' for systems with 4GB RAM. Error: {memory_error}")
-                except:
-                    pass
-                    
                 raise Exception(f"Ollama API error: {response.status_code} - {error_text}")
                 
         except httpx.TimeoutException:

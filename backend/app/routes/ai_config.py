@@ -142,27 +142,18 @@ async def get_supported_providers():
             "ollama": {
                 "name": "Ollama (Local)",
                 "models": [
-                    "llama3.2:3b",  # ~2GB RAM - Recommended for 4GB systems
-                    "phi3:3.8b",    # ~2.3GB RAM - Good for coding
-                    "llama3:8b",    # ~5.9GB RAM - Requires 8GB+ system
-                    "mistral:7b",   # ~4.1GB RAM - Requires 6GB+ system
-                    "codellama:7b", # ~4.1GB RAM - Requires 6GB+ system
-                    "llama2:7b",    # ~4.1GB RAM - Requires 6GB+ system
-                    "llama3:70b",   # ~40GB RAM - Requires high-end systems
+                    "llama3:8b",
+                    "llama3:70b", 
+                    "llama3.2:3b",
+                    "llama2:7b",
+                    "mistral:7b",
+                    "codellama:7b",
+                    "phi3:3.8b",
                     "custom"
                 ],
                 "requires_api_key": False,
                 "requires_endpoint": True,
-                "default_endpoint": "http://localhost:11434",
-                "memory_requirements": {
-                    "llama3.2:3b": "~2GB RAM",
-                    "phi3:3.8b": "~2.3GB RAM", 
-                    "llama3:8b": "~5.9GB RAM",
-                    "mistral:7b": "~4.1GB RAM",
-                    "codellama:7b": "~4.1GB RAM",
-                    "llama2:7b": "~4.1GB RAM",
-                    "llama3:70b": "~40GB RAM"
-                }
+                "default_endpoint": "http://localhost:11434"
             }
         }
     }
